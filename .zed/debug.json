@@ -1,0 +1,28 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+  {
+    "adapter": "CodeLLDB",
+    "label": "package 'src'",
+    "build": {
+      "label": "odin debug build",
+      "command": "odin",
+      "args": ["build", "src", "-out:debug_build", "-debug"],
+      "env": {},
+      "cwd": null,
+      "use_new_terminal": false,
+      "allow_concurrent_runs": false,
+      "reveal": "always",
+      "reveal_target": "dock",
+      "hide": "never",
+      "tags": ["run"],
+      "shell": "system",
+      "show_summary": false,
+      "show_command": false,
+    },
+    "request": "launch",
+    "program": "debug_build",
+  },
+]

@@ -1,0 +1,8 @@
+debug_build*/
+debug_build
+godin
+*.blend1
+**/.DS_Store
+*.bin
+.env
+downloaded_repos/
