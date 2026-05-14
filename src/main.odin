@@ -6,6 +6,7 @@ import "core:fmt"
 import "core:os"
 import "core:strconv"
 import "core:strings"
+import "base:runtime"
 import "github"
 import "gitlab"
 import "worker"
@@ -78,7 +79,7 @@ main :: proc() {
 	}
 
 	// GitHub token is required for all operations
-	github_token := os.get_env("GITHUB_TOKEN")
+	github_token := os.get_env_alloc("GITHUB_TOKEN", runtime.default_allocator())
 	if github_token == "" {
 		fmt.println("Error: GITHUB_TOKEN is not set")
 		os.exit(1)
@@ -100,7 +101,7 @@ main :: proc() {
 	if mode == "download" {
 		run_download_mode(gh_repos, current_user, dry_run, threads, output_dir)
 	} else if mode == "sync" {
-		gitlab_token := os.get_env("GITLAB_TOKEN")
+		gitlab_token := os.get_env_alloc("GITLAB_TOKEN", runtime.default_allocator())
 		if gitlab_token == "" {
 			if !dry_run {
 				fmt.println("Error: GITLAB_TOKEN is not set")
@@ -139,7 +140,7 @@ run_download_mode :: proc(
 
 	download_dir := output_dir
 	if !dry_run {
-		os.make_directory(download_dir, 0o755)
+		os.make_directory(download_dir)
 	}
 
 	user_prefix := fmt.tprintf("%s/", current_user)
@@ -215,7 +216,7 @@ run_sync_mode :: proc(
 	// Same sanitization logic as download
 	download_dir := output_dir
 	if !dry_run {
-		os.make_directory(download_dir, 0o755)
+		os.make_directory(download_dir)
 	}
 
 	for gh in repos {

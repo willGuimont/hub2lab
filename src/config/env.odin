@@ -3,13 +3,13 @@ package config
 
 import "core:os"
 import "core:strings"
+import "base:runtime"
 
 load_env :: proc(filepath: string) -> bool {
-	data, ok := os.read_entire_file(filepath)
-	if !ok {
+	data, err := os.read_entire_file_from_path(filepath, runtime.default_allocator())
+	if err != nil {
 		return false
 	}
-	defer delete(data)
 
 	it := string(data)
 	for line in strings.split_iterator(&it, "\n") {
