@@ -131,6 +131,7 @@ create_repo :: proc(
 	visibility: string = "private",
 ) -> (
 	string,
+	int,
 	bool,
 ) {
 	url := "https://gitlab.com/api/v4/projects"
@@ -157,11 +158,12 @@ create_repo :: proc(
 	if !ok || resp.status_code != 201 {
 		fmt.printf("Failed to create GitLab repo '%s': Status %d\n", name, resp.status_code)
 		fmt.println(resp.body)
-		return "", false
+		return "", 0, false
 	}
 	defer delete(resp.body)
 
 	RespJSON :: struct {
+		id:              int,
 		ssh_url_to_repo: string,
 	}
 
@@ -169,8 +171,33 @@ create_repo :: proc(
 	r: RespJSON
 	err := json.unmarshal(data, &r)
 	if err != nil {
-		return "", false
+		return "", 0, false
 	}
 
-	return r.ssh_url_to_repo, true
+	return r.ssh_url_to_repo, r.id, true
 }
+
+unprotect_branch :: proc(token: string, project_id: int, branch_name: string) -> bool {
+	url := fmt.tprintf(
+		"https://gitlab.com/api/v4/projects/%d/protected_branches/%s",
+		project_id,
+		branch_name,
+	)
+
+	headers := make(map[string]string)
+	defer delete(headers)
+	headers["Private-Token"] = token
+
+	resp, ok := utils.delete_req(url, headers)
+	defer delete(resp.body)
+	if !ok {
+		return false
+	}
+	return resp.status_code == 200 || resp.status_code == 204 || resp.status_code == 404
+}
+
+unprotect_default_branches :: proc(token: string, project_id: int) {
+	unprotect_branch(token, project_id, "main")
+	unprotect_branch(token, project_id, "master")
+}
+

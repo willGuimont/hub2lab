@@ -134,3 +134,19 @@ post :: proc(url: string, headers: map[string]string, body: string) -> (Response
 
 	return execute_curl(args[:])
 }
+
+delete_req :: proc(url: string, headers: map[string]string) -> (Response, bool) {
+	args := make([dynamic]string)
+	defer delete(args)
+
+	append(&args, "-X", "DELETE", url)
+
+	for k, v in headers {
+		append(&args, "-H")
+		header_str := fmt.tprintf("%s: %s", k, v)
+		append(&args, header_str)
+	}
+
+	return execute_curl(args[:])
+}
+

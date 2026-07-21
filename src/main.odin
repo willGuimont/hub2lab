@@ -236,13 +236,16 @@ run_sync_mode :: proc(
 
 		found_url := ""
 		repo_exists := false
+		gl_project_id := 0
 
 		if r, ok := gl_map[gh.name]; ok {
 			found_url = r.ssh_url_to_repo
 			repo_exists = true
+			gl_project_id = r.id
 		} else if r2, ok2 := gl_map[sanitized_name]; ok2 {
 			found_url = r2.ssh_url_to_repo
 			repo_exists = true
+			gl_project_id = r2.id
 		}
 
 		target_url := found_url
@@ -266,10 +269,11 @@ run_sync_mode :: proc(
 				visibility := "private"
 				if !gh.private {visibility = "public"}
 
-				url, ok := gitlab.create_repo(gitlab_token, create_name, 0, visibility)
+				url, project_id, ok := gitlab.create_repo(gitlab_token, create_name, 0, visibility)
 				if ok {
 					fmt.printf("Created %s on GitLab.\n", create_name)
 					target_url = url
+					gl_project_id = project_id
 				} else {
 					fmt.printf("Failed to create %s on GitLab. Skipping sync.\n", create_name)
 					continue
@@ -282,6 +286,11 @@ run_sync_mode :: proc(
 				fmt.printf("Repo %s exists on GitLab.\n", gh.name)
 			}
 		}
+
+		if !dry_run && gl_project_id != 0 {
+			gitlab.unprotect_default_branches(gitlab_token, gl_project_id)
+		}
+
 
 		if target_url != "" {
 			if dry_run {
