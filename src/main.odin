@@ -287,11 +287,6 @@ run_sync_mode :: proc(
 			}
 		}
 
-		if !dry_run && gl_project_id != 0 {
-			gitlab.unprotect_default_branches(gitlab_token, gl_project_id)
-		}
-
-
 		if target_url != "" {
 			if dry_run {
 				fmt.printf(
@@ -310,6 +305,8 @@ run_sync_mode :: proc(
 						gitlab_repo_url = target_url,
 						repo_name = gh.name,
 						local_path = fmt.tprintf("%s/%s", download_dir, local_folder),
+						gitlab_token = gitlab_token,
+						gitlab_project_id = gl_project_id,
 					},
 				)
 			}

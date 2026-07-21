@@ -16,17 +16,21 @@ foreign system_c {
 	exit :: proc(status: i32) -> ! ---
 }
 
+import "../gitlab"
+
 JobType :: enum {
 	Sync,
 	Download,
 }
 
 Job :: struct {
-	type:            JobType,
-	github_repo_url: string,
-	gitlab_repo_url: string,
-	repo_name:       string,
-	local_path:      string,
+	type:              JobType,
+	github_repo_url:   string,
+	gitlab_repo_url:   string,
+	repo_name:         string,
+	local_path:        string,
+	gitlab_token:      string,
+	gitlab_project_id: int,
 }
 
 Pool :: struct {
@@ -143,6 +147,11 @@ download_repo :: proc(j: Job, thread_id: int) {
 
 sync_repo :: proc(j: Job, thread_id: int) {
 	fmt.printf("[Thread %d] Syncing %s...\n", thread_id, j.repo_name)
+
+	if j.gitlab_token != "" && j.gitlab_project_id != 0 {
+		gitlab.unprotect_default_branches(j.gitlab_token, j.gitlab_project_id)
+		defer gitlab.protect_default_branches(j.gitlab_token, j.gitlab_project_id)
+	}
 
 	if !ensure_local_repo(j, thread_id) {
 		fmt.printf(

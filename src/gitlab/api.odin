@@ -201,3 +201,37 @@ unprotect_default_branches :: proc(token: string, project_id: int) {
 	unprotect_branch(token, project_id, "master")
 }
 
+protect_branch :: proc(token: string, project_id: int, branch_name: string) -> bool {
+	url := fmt.tprintf(
+		"https://gitlab.com/api/v4/projects/%d/protected_branches",
+		project_id,
+	)
+
+	headers := make(map[string]string)
+	defer delete(headers)
+	headers["Private-Token"] = token
+	headers["Content-Type"] = "application/json"
+
+	builder := strings.builder_make()
+	defer strings.builder_destroy(&builder)
+
+	strings.write_string(&builder, "{")
+	strings.write_string(&builder, fmt.tprintf("\"name\": \"%s\"", branch_name))
+	strings.write_string(&builder, "}")
+
+	body := strings.to_string(builder)
+
+	resp, ok := utils.post(url, headers, body)
+	defer delete(resp.body)
+	if !ok {
+		return false
+	}
+	return resp.status_code == 200 || resp.status_code == 201 || resp.status_code == 409
+}
+
+protect_default_branches :: proc(token: string, project_id: int) {
+	protect_branch(token, project_id, "main")
+	protect_branch(token, project_id, "master")
+}
+
+
