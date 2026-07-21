@@ -105,6 +105,25 @@ is_git_repo :: proc(path: string) -> bool {
 	return os.exists(git_path)
 }
 
+is_lfs_repo :: proc(path: string) -> bool {
+	lfs_dir := fmt.tprintf("%s/.git/lfs", path)
+	if os.exists(lfs_dir) {
+		return true
+	}
+
+	gitattributes_path := fmt.tprintf("%s/.gitattributes", path)
+	if os.exists(gitattributes_path) {
+		data, err := os.read_entire_file_from_path(gitattributes_path, context.temp_allocator)
+		if err == nil {
+			if strings.contains(string(data), "filter=lfs") {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // Helper wrapper to ignore errors
 git_exec_ignore_error :: proc(args: []string) {
 	// Just reuse the main implementation and ignore result
@@ -142,7 +161,12 @@ ensure_local_repo :: proc(j: Job, thread_id: int) -> bool {
 }
 
 download_repo :: proc(j: Job, thread_id: int) {
-	ensure_local_repo(j, thread_id)
+	if ensure_local_repo(j, thread_id) {
+		if is_lfs_repo(j.local_path) {
+			fmt.printf("[Thread %d] Git LFS detected in %s. Fetching LFS objects...\n", thread_id, j.repo_name)
+			git_exec_ignore_error([]string{"-C", j.local_path, "lfs", "fetch", "--all"})
+		}
+	}
 }
 
 sync_repo :: proc(j: Job, thread_id: int) {
@@ -160,6 +184,15 @@ sync_repo :: proc(j: Job, thread_id: int) {
 			j.repo_name,
 		)
 		return
+	}
+
+	// Detect and push LFS objects if repo uses Git LFS
+	if is_lfs_repo(j.local_path) {
+		fmt.printf("[Thread %d] Git LFS detected in %s. Fetching and pushing LFS objects...\n", thread_id, j.repo_name)
+		git_exec_ignore_error([]string{"-C", j.local_path, "lfs", "fetch", "--all"})
+		if !git_exec([]string{"-C", j.local_path, "lfs", "push", "--all", j.gitlab_repo_url}) {
+			fmt.printf("[Thread %d] Warning: Failed to push LFS objects for %s\n", thread_id, j.repo_name)
+		}
 	}
 
 	// 1. Delete local HEAD symref for origin

@@ -2,6 +2,10 @@
 
 Hub2Lab is a tool to manage and sync your GitHub repositories. It can sync them to GitLab (creating missing ones) or download them all locally.
 
+## Prerequisites
+
+- **Git LFS**: Must be installed on your system for repositories using Git LFS to work properly.
+
 ## Configuration
 
 Create a `.env` file in the root directory:
